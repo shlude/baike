@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的百科</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1208;
+      --ink-light: #4a3f2f;
+      --ink-faint: #8a7a65;
+      --paper: #f5f0e8;
+      --paper-warm: #ede5d4;
+      --paper-card: #faf7f2;
+      --accent: #8b4513;
+      --accent-light: #c8773a;
+      --red: #c0392b;
+      --line: rgba(139, 69, 19, 0.15);
+      --shadow: rgba(26, 18, 8, 0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Noto Serif SC', 'Songti SC', '宋体', serif;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        0deg, transparent, transparent 28px,
+        rgba(139, 69, 19, 0.04) 28px, rgba(139, 69, 19, 0.04) 29px
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #app { position: relative; z-index: 1; }
+
+    header {
+      text-align: center;
+      padding: 3rem 2rem 2rem;
+      border-bottom: 2px solid var(--line);
+      background: linear-gradient(180deg, var(--paper-warm) 0%, transparent 100%);
+    }
+
+    .site-title {
+      font-family: 'Ma Shan Zheng', cursive;
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      color: var(--ink);
+      letter-spacing: 0.15em;
+      line-height: 1;
+      display: inline-block;
+    }
+
+    .site-title::after {
+      content: '';
+      display: block;
+      width: 60%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      margin: 0.4rem auto 0;
+    }
+
+    .site-subtitle {
+      margin-top: 0.6rem;
+      font-size: 0.85rem;
+      color: var(--ink-faint);
+      letter-spacing: 0.2em;
+      font-weight: 300;
+    }
+
+    .search-wrap {
+      max-width: 480px;
+      margin: 1.5rem auto 0;
+      position: relative;
+    }
+
+    #search {
+      width: 100%;
+      padding: 0.65rem 1.2rem 0.65rem 2.6rem;
+      border: 1.5px solid var(--line);
+      border-radius: 2px;
+      background: var(--paper-card);
+      font-family: inherit;
+      font-size: 0.95rem;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    #search:focus { border-color: var(--accent-light); }
+    #search::placeholder { color: var(--ink-faint); }
+
+    .search-icon {
+      position: absolute;
+      left: 0.85rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--ink-faint);
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+
+    .stats {
+      margin: 1rem 0 0;
+      font-size: 0.78rem;
+      color: var(--ink-faint);
+      letter-spacing: 0.1em;
+    }
+
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    /* ── 首页目录 ── */
+    .pinyin-group { margin-bottom: 2.5rem; }
+
+    .pinyin-letter {
+      font-family: 'Ma Shan Zheng', cursive;
+      font-size: 1.8rem;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+
+    .pinyin-letter small {
+      font-size: 0.75rem;
+      color: var(--ink-faint);
+      font-family: 'Noto Serif SC', serif;
+      font-weight: 300;
+    }
+
+    .entries-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .entry-chip {
+      display: inline-block;
+      padding: 0.3rem 0.8rem;
+      background: var(--paper-card);
+      border: 1px solid var(--line);
+      border-radius: 1px;
+      font-size: 0.95rem;
+      color: var(--ink);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .entry-chip:hover {
+      background: var(--paper-warm);
+      border-color: var(--accent-light);
+      color: var(--accent);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+
+    .entry-chip .py {
+      font-size: 0.6rem;
+      color: var(--ink-faint);
+      display: block;
+      text-align: center;
+      line-height: 1;
+      margin-bottom: 1px;
+    }
+
+    /* ── 词条详情 ── */
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--ink-faint);
+      cursor: pointer;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      margin-bottom: 2rem;
+      padding: 0.3rem 0;
+      border-bottom: 1px dashed transparent;
+      transition: all 0.15s;
+    }
+    .back-btn:hover { color: var(--accent); border-color: var(--accent-light); }
+
+    .entry-header {
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .entry-title {
+      font-family: 'Ma Shan Zheng', cursive;
+      font-size: clamp(2rem, 5vw, 3rem);
+      color: var(--ink);
+      line-height: 1.1;
+    }
+
+    .entry-pinyin {
+      font-size: 0.9rem;
+      color: var(--ink-faint);
+      margin-top: 0.3rem;
+      letter-spacing: 0.15em;
+    }
+
+    .entry-body {
+      font-size: 1.02rem;
+      line-height: 2;
+      color: var(--ink-light);
+    }
+
+    .entry-body p { margin-bottom: 1.2em; }
+
+    .entry-body h2 {
+      font-size: 1.1rem;
+      color: var(--ink);
+      margin: 1.8em 0 0.6em;
+      padding-left: 0.8em;
+      border-left: 3px solid var(--accent-light);
+      font-weight: 600;
+    }
+
+    .entry-body h3 {
+      font-size: 1rem;
+      color: var(--ink);
+      margin: 1.2em 0 0.5em;
+    }
+
+    .internal-link {
+      color: var(--accent);
+      border-bottom: 1px dashed var(--accent-light);
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    .internal-link:hover { color: var(--red); border-color: var(--red); }
+
+    .related-section {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .related-label {
+      font-size: 0.78rem;
+      color: var(--ink-faint);
+      letter-spacing: 0.2em;
+      margin-bottom: 0.8rem;
+    }
+
+    .related-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    /* ── 搜索结果 ── */
+    .search-result {
+      padding: 1rem 1.2rem;
+      background: var(--paper-card);
+      border: 1px solid var(--line);
+      margin-bottom: 0.6rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .search-result:hover {
+      border-color: var(--accent-light);
+      transform: translateX(3px);
+    }
+
+    .search-result-title { font-size: 1.1rem; color: var(--ink); }
+
+    .search-result-preview {
+      font-size: 0.82rem;
+      color: var(--ink-faint);
+      margin-top: 0.3rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .no-result {
+      text-align: center;
+      color: var(--ink-faint);
+      padding: 3rem;
+      font-size: 0.9rem;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      color: var(--ink-faint);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      border-top: 1px solid var(--line);
+      position: relative;
+      z-index: 1;
+    }
+
+    @media (max-width: 600px) {
+      header { padding: 2rem 1rem 1.5rem; }
+      main { padding: 1.5rem 1rem 3rem; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.3s ease forwards; }
+    /* ── 免责声明标记 ── */
+    .title-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5em;
+    }
+
+    .disclaimer-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      /* 抵消大标题的字体下沉，视觉上居中对齐 */
+      margin-top: 0.1em;
+    }
+
+    .disclaimer-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.5rem;
+      height: 1.5rem;
+      font-family: 'Noto Serif SC', serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--paper);
+      background: var(--accent-light);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.15s;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .disclaimer-wrap:hover .disclaimer-btn {
+      background: var(--red);
+      transform: scale(1.1);
+    }
+
+    .disclaimer-tip {
+      position: absolute;
+      /* 出现在标记下方 */
+      top: calc(100% + 0.7rem);
+      left: 50%;
+      transform: translateX(-50%) translateY(-4px);
+      /* 暖色背景，醒目 */
+      background: var(--paper-warm);
+      color: var(--ink);
+      border: 1.5px solid var(--accent-light);
+      box-shadow: 0 4px 16px rgba(139,69,19,0.18);
+      font-family: 'Noto Serif SC', serif;
+      font-size: 0.88rem;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      line-height: 1.7;
+      white-space: nowrap;
+      padding: 0.7rem 1.1rem;
+      border-radius: 3px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 200;
+    }
+
+    /* 向上的小箭头 */
+    .disclaimer-tip::before {
+      content: '';
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-bottom-color: var(--accent-light);
+    }
+    .disclaimer-tip::after {
+      content: '';
+      position: absolute;
+      bottom: calc(100% - 1px);
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-bottom-color: var(--paper-warm);
+    }
+
+    .disclaimer-wrap:hover .disclaimer-tip {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+  </style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1 class="site-title">
+      <span class="title-row">
+        <span>我的百科</span>
+        <span class="disclaimer-wrap">
+          <span class="disclaimer-btn">!!</span>
+          <span class="disclaimer-tip">纯个人思维记录，不保真，不作为任何参考依据</span>
+        </span>
+      </span>
+    </h1>
+    <p class="site-subtitle">万物皆可入词，一词便是一个世界</p>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search" placeholder="搜索词条…" autocomplete="off">
+    </div>
+    <p class="stats" id="stats"></p>
+  </header>
+
+  <main id="main-content"></main>
+
+  <footer>
+    &copy; <span id="year"></span> &nbsp;·&nbsp; 我的百科 &nbsp;·&nbsp; 用文字丈量世界
+  </footer>
+</div>
+
+<!-- entries.js 必须在此脚本之前加载 -->
+<script src="entries.js"></script>
+<script>
+// ── 工具函数 ──────────────────────────────────────────────
+
+function pinyinInitial(pinyin) {
+  return stripTones(pinyin).charAt(0).toUpperCase();
+}
+
+// 去掉声调，纯按 a-z 字母顺序排（ài → ai，shí → shi）
+function stripTones(pinyin) {
+  return pinyin.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
+}
+
+function sortedEntries() {
+  return [...ENTRIES].sort((a, b) => stripTones(a.pinyin).localeCompare(stripTones(b.pinyin), 'en'));
+}
+
+function groupByInitial(list) {
+  const map = {};
+  for (const e of list) {
+    const k = pinyinInitial(e.pinyin);
+    if (!map[k]) map[k] = [];
+    map[k].push(e);
+  }
+  return map;
+}
+
+// 将正文文本解析为 HTML
+function parseContent(text) {
+  // [[词语]] 内链
+  text = text.replace(/\[\[([^\]]+)\]\]/g, (_, word) => {
+    const entry = ENTRIES.find(e => e.title === word);
+    if (entry) {
+      return `<span class="internal-link" onclick="showEntry('${entry.id}')">${word}</span>`;
+    }
+    // 词条不存在时，灰色显示，不报错
+    return `<span style="color:var(--ink-faint);border-bottom:1px dashed var(--line)">${word}(?)</span>`;
+  });
+  // 标题
+  text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  // 加粗
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // 段落（按空行分割，不是 h 标签的才包 <p>）
+  const parts = text.split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
+  return parts.map(p => /^<h[23]/.test(p) ? p : `<p>${p}</p>`).join('\n');
+}
+
+// 生成一个词条芯片的 HTML
+function chipHTML(entry) {
+  return `<span class="entry-chip" onclick="showEntry('${entry.id}')">
+    <span class="py">${entry.pinyin}</span>${entry.title}
+  </span>`;
+}
+
+// ── 渲染函数 ──────────────────────────────────────────────
+
+function renderIndex() {
+  document.title = '我的百科';
+  document.getElementById('stats').textContent = `共 ${ENTRIES.length} 个词条`;
+
+  const groups = groupByInitial(sortedEntries());
+  const letters = Object.keys(groups).sort();
+
+  const html = letters.map(letter => `
+    <div class="pinyin-group">
+      <div class="pinyin-letter">${letter}<small>${letter.toLowerCase()}</small></div>
+      <div class="entries-grid">
+        ${groups[letter].map(chipHTML).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  const main = document.getElementById('main-content');
+  main.innerHTML = html;
+  main.classList.add('fade-in');
+}
+
+function renderEntry(id) {
+  const entry = ENTRIES.find(e => e.id === id);
+  if (!entry) {
+    renderIndex();
+    return;
+  }
+
+  document.title = entry.title + ' — 我的百科';
+
+  // 相关词条 HTML（可选字段）
+  const related = (entry.related || [])
+    .map(rid => ENTRIES.find(e => e.id === rid))
+    .filter(Boolean);
+
+  const relatedHTML = related.length > 0 ? `
+    <div class="related-section">
+      <p class="related-label">相关词条</p>
+      <div class="related-chips">${related.map(chipHTML).join('')}</div>
+    </div>` : '';
+
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    <div class="back-btn" onclick="navigate('index')">← 返回目录</div>
+    <div class="entry-header">
+      <h1 class="entry-title">${entry.title}</h1>
+      <p class="entry-pinyin">${entry.pinyin}</p>
+    </div>
+    <div class="entry-body">${parseContent(entry.content)}</div>
+    ${relatedHTML}
+    <div class="back-btn" style="margin-top:2.5rem;margin-bottom:0" onclick="navigate('index')">← 返回目录</div>
+  `;
+  main.classList.add('fade-in');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderSearch(q) {
+  if (!q) { renderIndex(); return; }
+
+  const ql = q.toLowerCase();
+  const results = ENTRIES.filter(e =>
+    e.title.includes(q) ||
+    e.pinyin.toLowerCase().includes(ql) ||
+    e.content.includes(q)
+  );
+
+  const main = document.getElementById('main-content');
+
+  if (results.length === 0) {
+    main.innerHTML = `<p class="no-result">没有找到「${q}」相关词条</p>`;
+    return;
+  }
+
+  const resultsHTML = results.map(e => `
+    <div class="search-result" onclick="showEntry('${e.id}')">
+      <div class="search-result-title">${e.title}
+        <small style="color:var(--ink-faint);font-size:0.75rem;margin-left:0.4em">${e.pinyin}</small>
+      </div>
+      <div class="search-result-preview">${e.content.replace(/[#*\[\]]/g, '').substring(0, 100)}…</div>
+    </div>
+  `).join('');
+
+  main.innerHTML = `
+    <p class="related-label" style="margin-bottom:1rem">找到 ${results.length} 个结果</p>
+    ${resultsHTML}
+  `;
+}
+
+// ── 路由 ──────────────────────────────────────────────────
+// 统一的导航入口，所有页面切换都走这里
+
+function navigate(target, param) {
+  // 清除 fade-in 以便重新触发动画
+  const main = document.getElementById('main-content');
+  main.classList.remove('fade-in');
+  // 强制重排，让动画能重新播放
+  void main.offsetWidth;
+
+  if (target === 'index') {
+    document.getElementById('search').value = '';
+    renderIndex();
+  } else if (target === 'entry') {
+    renderEntry(param);
+  } else if (target === 'search') {
+    renderSearch(param);
+  }
+}
+
+// 对外暴露的跳转函数（供 onclick 使用）
+function showEntry(id) {
+  navigate('entry', id);
+}
+
+// ── 初始化 ────────────────────────────────────────────────
+
+document.getElementById('year').textContent = new Date().getFullYear();
+
+document.getElementById('search').addEventListener('input', function () {
+  const q = this.value.trim();
+  navigate(q ? 'search' : 'index', q);
+});
+
+// 页面加载，直接渲染首页
+// （不依赖 hashchange，避免浏览器兼容问题）
+renderIndex();
+</script>
+</body>
+</html>
